@@ -1,0 +1,12 @@
+# Tested with Python 3.10 and PyTorch 2.4.1 (CUDA 12.1).
+# Install PyTorch first, matching your CUDA version
+# (https://pytorch.org/get-started/locally/), then:
+#   pip install -r requirements.txt
+
+numpy==1.26.4
+pyyaml==6.0.1
+timm==0.9.16
+torchmetrics==1.9.0
+tqdm==4.66.5
+wandb==0.28.0
+matplotlib==3.7.5

@@ -1,0 +1,100 @@
+# ============================================================
+# Training
+#
+#   python main.py --config config/train/train.yaml
+#
+# Another dataset: change `dataset` and `model_args.num_classes`
+#   WLASL100 / WLASL300 / WLASL2000 / MSASL1000  ->  100 / 300 / 2000 / 1000
+#
+# The four streams used for ensembling are selected with `bone_stream` and
+# `motion_stream`, which must be set identically in train_feeder_args and
+# test_feeder_args:
+#   joint          bone_stream: False   motion_stream: False
+#   bone           bone_stream: True    motion_stream: False
+#   joint motion   bone_stream: False   motion_stream: True
+#   bone motion    bone_stream: True    motion_stream: True
+#
+# Data is read from ./data/<dataset>/{train,val}_data_joint.npy and
+# {train,val}_label.pkl; set data_path / label_path in the feeder args to
+# override. Outputs go to ./work_dir/<Experiment_name>/.
+# ============================================================
+Experiment_name: WLASL2000_joint
+dataset: WLASL2000
+feeder: feeders.feeder.Feeder
+train_feeder_args:
+  debug: False
+  random_choose: True
+  window_size: 120
+  random_shift: True
+  normalization: True
+  random_mirror: True
+  random_mirror_p: 0.5
+  is_vector: False
+  bone_stream: False
+  motion_stream: False
+  partition: True
+test_feeder_args:
+  debug: False
+  random_choose: False
+  window_size: 120
+  random_mirror: False
+  normalization: True
+  is_vector: False
+  bone_stream: False
+  motion_stream: False
+  partition: True
+
+model: model.model.HAPCNet
+model_args:
+  num_classes: 2000
+  num_people: 1
+  num_points: 27
+  kernel_size: 7           # temporal downsampling kernel between stages
+  num_subsets: 8           # adjacency subsets K of the graph convolution
+  head_drop: 0.0
+  drop_path: 0.2
+  mlp_ratio: 4.0
+  mstcn_kernel_sizes: [5, 7]
+  mstcn_num_layers: 3
+  # ---- hypergraph adjacency ----
+  hyper_num: 3             # virtual joints
+  hyper_topk: 9            # joints per hyperedge
+  hyper_reduction: 4
+  # ---- auxiliary prototype branch (training only) ----
+  aux_attn_tau: 1.0
+  aux_h_channel: 256       # dimension of the contrastive space
+  aux_threshold: 0.0       # confidence needed for a sample to update a class centre
+  aux_tmp: 0.125           # temperature
+  aux_mom: 0.8             # momentum of the L_CSC memory bank
+  # ---- inter-affinity (class family) loss ----
+  mf_warmup: 30            # L_inter is exactly 0 for the first mf_warmup epochs
+  mf_k: 10                 # directly confused neighbours per class
+  mf_na: 4                 # shared-neighbour threshold
+  mf_center_mom: 0.9       # momentum of the L_inter class centres
+
+# L = L_CE + csc_weight * L_CSC + inter_weight * L_inter
+csc_weight: 0.5
+inter_weight: 0.1
+
+weights: null
+ignore_weights: []
+optimizer: AdamW
+weight_decay: 0.1
+base_lr: 1.0e-3
+min_lr: 1.0e-5
+warmup_lr: 1.0e-7
+warmup_prefix: False
+warm_up_epoch: 25
+lr_scheduler: cosine
+grad_clip: True
+grad_max: 1.0
+loss_type: LSCE
+seed: 1
+device: [0]
+batch_size: 24
+test_batch_size: 24
+start_epoch: 0
+num_epoch: 300
+num_worker: 4
+save_interval: 2           # evaluate, and save the best model, every N epochs
+wandb: False

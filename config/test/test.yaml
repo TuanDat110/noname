@@ -1,0 +1,69 @@
+# ============================================================
+# Evaluation of a trained checkpoint
+#
+#   python main.py --config config/test/test.yaml
+#
+# Runs one evaluation pass and writes the class scores of every sample to
+#   ./work_dir/<Experiment_name>/eval_results/<score_name>
+# for ensembling (see ./ensemble).
+#
+# Set `weights`, `dataset`, `model_args.num_classes` and the data / label paths.
+# `bone_stream` / `motion_stream` and all of `model_args` must match the
+# training run of the checkpoint.
+#
+# To search the ensemble weights, evaluate on the validation split
+# (val_data_joint.npy / val_label.pkl) with a different Experiment_name.
+# ============================================================
+Experiment_name: TEST_WLASL2000_joint
+phase: test
+weights: ./work_dir/WLASL2000_both_J_HYPER/save_models/best_model.pt
+save_score: true
+score_name: test_joint.pkl
+
+dataset: WLASL2000
+feeder: feeders.feeder.Feeder
+test_feeder_args:
+  debug: False
+  random_choose: False
+  window_size: 120
+  random_mirror: False
+  normalization: True
+  is_vector: False
+  bone_stream: False
+  motion_stream: False
+  partition: True
+  data_path: ./data/WLASL2000/test_data_joint.npy
+  label_path: ./data/WLASL2000/test_label.pkl
+
+model: model.model.HAPCNet
+model_args:
+  num_classes: 2000
+  num_people: 1
+  num_points: 27
+  kernel_size: 7
+  num_subsets: 8
+  head_drop: 0.0
+  drop_path: 0.2
+  mlp_ratio: 4.0
+  mstcn_kernel_sizes: [5, 7]
+  mstcn_num_layers: 3
+  hyper_num: 3
+  hyper_topk: 9
+  hyper_reduction: 4
+  aux_attn_tau: 1.0
+  aux_h_channel: 256
+  aux_threshold: 0.0
+  aux_tmp: 0.125
+  aux_mom: 0.8
+  mf_warmup: 30
+  mf_k: 10
+  mf_na: 4
+  mf_center_mom: 0.9
+
+ignore_weights: []
+device: [0]
+test_batch_size: 24
+num_worker: 4
+seed: 1
+print_log: true
+show_topk: [1, 5]
